@@ -29,13 +29,13 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
-  authDomain: "virtualblocks-servers.firebaseapp.com",
-  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
-  projectId: "virtualblocks-servers",
-  storageBucket: "virtualblocks-servers.appspot.com",
-  messagingSenderId: "796633829717",
-  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+    apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+    authDomain: "virtualblocks-servers.firebaseapp.com",
+    databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+    projectId: "virtualblocks-servers",
+    storageBucket: "virtualblocks-servers.appspot.com",
+    messagingSenderId: "796633829717",
+    appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -52,13 +52,13 @@ let players = {};
 let points = [];
 let targetX = player.x;
 let targetY = player.y;
-let hasLost = false; // Cooldown para perder
+let hasLost = false;
 
 auth.onAuthStateChanged(user => {
     if (user) {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
-        db.ref(players/${player.id}).set(player);
+        db.ref(`players/${player.id}`).set(player);
 
         db.ref("players").on("value", snapshot => {
             players = snapshot.val() || {};
@@ -76,7 +76,7 @@ auth.onAuthStateChanged(user => {
         });
 
         window.addEventListener("beforeunload", () => {
-            db.ref(players/${player.id}).remove().then(() => checkEmptyServer());
+            db.ref(`players/${player.id}`).remove().then(() => checkEmptyServer());
         });
 
         setInterval(spawnPoints, 60000);
@@ -112,7 +112,7 @@ function updateLeaderboard() {
     leaderboard.innerHTML = "<b>Leaderboard</b><br>";
     const sorted = Object.values(players).sort((a, b) => b.size - a.size);
     sorted.forEach(p => {
-        leaderboard.innerHTML += ${p.name}: ${p.size} puntos<br>;
+        leaderboard.innerHTML += `${p.name}: ${p.size} puntos<br>`;
     });
 }
 
@@ -134,14 +134,14 @@ function checkCollisions() {
             if (dist < player.size && player.size > p.size) {
                 player.size += p.size / 2;
                 player.score += p.size;
-                db.ref(players/${id}).remove();
+                db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
-                    hasLost = true; // Activar cooldown
-                    setTimeout(() => hasLost = false, 5000); // Cooldown de 5 segundos para evitar spam
-                    db.ref(players/${player.id}).remove().then(() => {
-                        window.close(); // Cierra la pestaña actual
-                        window.open("perdiste.html", "_blank"); // Abre la pestaña de derrota
+                    hasLost = true;
+                    setTimeout(() => hasLost = false, 5000);
+                    db.ref(`players/${player.id}`).remove().then(() => {
+                        window.close();
+                        window.open("perdiste.html", "_blank");
                     });
                 }
             }
@@ -174,10 +174,9 @@ function gameLoop() {
     }
 
     checkCollisions();
-    db.ref(players/${player.id}).set(player);
+    db.ref(`players/${player.id}`).set(player);
     requestAnimationFrame(gameLoop);
 }
 </script>
 </body>
 </html>
-
