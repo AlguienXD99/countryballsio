@@ -5,40 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Countryballs.io</title>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; background: white; overflow: hidden; }
         canvas { display: block; }
-        #leaderboard {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
+        #leaderboard { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(0, 0, 0, 0.7); 
+            color: white; 
+            padding: 10px; 
+            border-radius: 5px; 
             font-family: Arial, sans-serif;
-        }
-        #countrySelect {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            display: none;
         }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div id="leaderboard"></div>
-<div id="countrySelect">
-    <h2>Selecciona tu país</h2>
-    <select id="countryDropdown"></select>
-    <button onclick="selectCountry()">Jugar</button>
-</div>
+<div id="leaderboard">Leaderboard</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -46,10 +29,13 @@
 
 <script>
 const firebaseConfig = {
-    apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
-    authDomain: "virtualblocks-servers.firebaseapp.com",
-    databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
-    projectId: "virtualblocks-servers"
+  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+  authDomain: "virtualblocks-servers.firebaseapp.com",
+  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+  projectId: "virtualblocks-servers",
+  storageBucket: "virtualblocks-servers.appspot.com",
+  messagingSenderId: "796633829717",
+  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -61,94 +47,72 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let player = { id: null, x: 0, y: 0, size: 30, country: "", name: "", score: 0 };
+let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland", name: "", score: 0 };
 let players = {};
 let points = [];
-let targetX = 0, targetY = 0, hasLost = false;
+let targetX = player.x;
+let targetY = player.y;
+let hasLost = false; 
 
 auth.onAuthStateChanged(user => {
     if (user) {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
-        showCountrySelection();
+        db.ref(players/${player.id}).set(player);
+
+        db.ref("players").on("value", snapshot => {
+            players = snapshot.val() || {};
+            updateLeaderboard();
+        });
+
+        db.ref("points").once("value", snapshot => {
+            points = snapshot.val() || [];
+            if (points.length === 0) generatePoints();
+        });
+
+        window.addEventListener("mousemove", e => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+        });
+
+        window.addEventListener("beforeunload", () => {
+            db.ref(players/${player.id}).remove().then(() => checkEmptyServer());
+        });
+
+        setInterval(spawnPoints, 60000);
+        gameLoop();
     } else {
-        auth.signInAnonymously();
+        window.location.href = "index.html";
     }
 });
 
-function showCountrySelection() {
-    const select = document.getElementById("countryDropdown");
-    select.innerHTML = "";
-    db.ref("countriesAvailable").once("value", snapshot => {
-        const countries = snapshot.val();
-        if (countries) {
-            for (let country in countries) {
-                if (countries[country]) {
-                    const option = document.createElement("option");
-                    option.value = country;
-                    option.textContent = country;
-                    select.appendChild(option);
-                }
-            }
-        }
-        document.getElementById("countrySelect").style.display = "block";
-    });
-}
-
-function selectCountry() {
-    const selectedCountry = document.getElementById("countryDropdown").value;
-    if (!selectedCountry) {
-        alert("Selecciona un país");
-        return;
+function generatePoints() {
+    points = [];
+    for (let i = 0; i < 100; i++) {
+        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
     }
-
-    player.country = selectedCountry;
-    player.x = Math.random() * canvas.width;
-    player.y = Math.random() * canvas.height;
-    targetX = player.x;
-    targetY = player.y;
-
-    db.ref(`countriesAvailable/${selectedCountry}`).set(false);
-    db.ref(`players/${player.id}`).set({
-        id: player.id,
-        x: player.x,
-        y: player.y,
-        size: player.size,
-        country: player.country,
-        name: player.name,
-        score: player.score
-    });
-
-    document.getElementById("countrySelect").style.display = "none";
-
-    window.addEventListener("mousemove", e => {
-        targetX = e.clientX;
-        targetY = e.clientY;
-    });
-
-    window.addEventListener("beforeunload", () => {
-        db.ref(`players/${player.id}`).remove();
-        db.ref(`countriesAvailable/${selectedCountry}`).set(true);
-    });
-
-    db.ref(`players/${player.id}`).onDisconnect().remove().then(() => {
-        db.ref(`countriesAvailable/${selectedCountry}`).set(true);
-    });
-
-    spawnPoints();
-    gameLoop();
+    db.ref("points").set(points);
 }
 
 function spawnPoints() {
-    db.ref("points").once("value", snapshot => {
-        if (!snapshot.exists()) {
-            for (let i = 0; i < 100; i++) {
-                points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
-            }
-            db.ref("points").set(points);
-        } else {
-            points = snapshot.val();
-        }
+    for (let i = 0; i < 20; i++) {
+        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
+    }
+    db.ref("points").set(points);
+}
+
+function checkEmptyServer() {
+    db.ref("players").once("value", snapshot => {
+        if (!snapshot.exists()) generatePoints();
+    });
+}
+
+function updateLeaderboard() {
+    const leaderboard = document.getElementById("leaderboard");
+    leaderboard.innerHTML = "<b>Leaderboard</b><br>";
+    const sorted = Object.values(players).sort((a, b) => b.size - a.size);
+    sorted.forEach(p => {
+        leaderboard.innerHTML += ${p.name}: ${p.size} puntos<br>;
     });
 }
 
@@ -163,18 +127,39 @@ function checkCollisions() {
         return true;
     });
 
+    for (const id in players) {
+        if (id !== player.id) {
+            const p = players[id];
+            const dist = Math.hypot(player.x - p.x, player.y - p.y);
+            if (dist < player.size && player.size > p.size) {
+                player.size += p.size / 2;
+                player.score += p.size;
+                db.ref(players/${id}).remove();
+            } else if (dist < p.size && p.size > player.size) {
+                if (!hasLost) {
+                    hasLost = true; 
+                    setTimeout(() => hasLost = false, 5000);
+                    db.ref(players/${player.id}).remove().then(() => {
+                        window.close();
+                        window.open("perdiste.html", "_blank");
+                    });
+                }
+            }
+        }
+    }
     db.ref("points").set(points);
 }
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     player.x += (targetX - player.x) * 0.02;
     player.y += (targetY - player.y) * 0.02;
 
+    ctx.fillStyle = "green";
     points.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = "green";
         ctx.fill();
     });
 
@@ -185,34 +170,13 @@ function gameLoop() {
         ctx.fillStyle = id === player.id ? "blue" : "red";
         ctx.fill();
         ctx.stroke();
-
-        ctx.fillStyle = "white";
-        ctx.font = "16px Arial";
-        ctx.fillText(`${p.name} [${p.country}]`, p.x - 20, p.y - p.size - 10);
+        ctx.fillText(p.name, p.x - 20, p.y - p.size - 10);
     }
 
     checkCollisions();
-    db.ref(`players/${player.id}`).set(player);
+    db.ref(players/${player.id}).set(player);
     requestAnimationFrame(gameLoop);
 }
-
-function updateLeaderboard() {
-    const leaderboard = document.getElementById("leaderboard");
-    db.ref("players").once("value", snapshot => {
-        const allPlayers = [];
-        snapshot.forEach(child => {
-            allPlayers.push(child.val());
-        });
-
-        allPlayers.sort((a, b) => b.score - a.score);
-        leaderboard.innerHTML = "<h3>Leaderboard</h3>";
-        allPlayers.forEach(p => {
-            leaderboard.innerHTML += `${p.name} [${p.country}]: ${p.score}<br>`;
-        });
-    });
-}
-
-setInterval(updateLeaderboard, 1000);
 
 window.addEventListener("resize", () => {
     canvas.width = window.innerWidth;
