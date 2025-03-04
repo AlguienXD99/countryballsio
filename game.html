@@ -131,13 +131,9 @@ function checkCollisions() {
             const p = players[id];
             const dist = Math.hypot(player.x - p.x, player.y - p.y);
             if (dist < player.size && player.size > p.size) {
-             player.size += p.size / 2;
-             player.score += p.size;
-             if (p.id === player.id) {  // Si el jugador actual es absorbido
-                    window.location.href = "perdiste.html";
-                }
-                    db.ref(`players/${id}`).remove();  // Eliminar jugador absorbido
-                }
+                player.size += p.size / 2;
+                player.score += p.size;
+                db.ref(`players/${id}`).remove(); // Eliminar jugador absorbido
             }
         }
     }
@@ -174,5 +170,3 @@ function gameLoop() {
 </script>
 </body>
 </html>
-
-
