@@ -67,69 +67,99 @@ const firebaseConfig = {
   authDomain: "virtualblocks-servers.firebaseapp.com",
   databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
   projectId: "virtualblocks-servers",
-  storageBucket: "virtualblocks-servers.firebasestorage.app",
+  storageBucket: "virtualblocks-servers.appspot.com",
   messagingSenderId: "796633829717",
   appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
 };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
-    const provider = new firebase.auth.GoogleAuthProvider();
 
-    pannellum.viewer('panorama', {
-        type: 'equirectangular',
-        panorama: 'escena360.jpg',
-        autoLoad: true
-    });
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
 
-    const playersDiv = document.getElementById('players');
-    const reportButton = document.getElementById('reportButton');
-    let playerID = Date.now();
-    let username = "Jugador";
+let playerID = null;
+let username = "Jugador";
+const playersDiv = document.getElementById('players');
+const reportButton = document.getElementById('reportButton');
 
-    auth.signInWithPopup(provider).then((result) => {
-        username = result.user.displayName;
-        playerID = result.user.uid;
+// Panorama
+pannellum.viewer('panorama', {
+    type: 'equirectangular',
+    panorama: 'escena360.jpg',
+    autoLoad: true
+});
+
+// Autenticación automática
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        console.log("Usuario autenticado:", user.displayName);
+        username = user.displayName;
+        playerID = user.uid;
         const avatar = createAvatar(username);
         trackPlayer(avatar);
-    }).catch((error) => {
-        console.error("Error de autenticación", error);
-    });
-
-    function createAvatar(name) {
-        const avatar = document.createElement('div');
-        avatar.classList.add('avatar');
-        avatar.textContent = name;
-        playersDiv.appendChild(avatar);
-        return avatar;
-    }
-
-    function trackPlayer(avatar) {
-        document.addEventListener('mousemove', (e) => {
-            avatar.style.left = `${e.clientX}px`;
-            avatar.style.top = `${e.clientY}px`;
-            db.ref(`players/${playerID}`).set({
-                x: e.clientX,
-                y: e.clientY,
-                name: username
-            });
+    } else {
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => auth.signInWithPopup(provider))
+        .then((result) => {
+            username = result.user.displayName;
+            playerID = result.user.uid;
+            const avatar = createAvatar(username);
+            trackPlayer(avatar);
+        })
+        .catch((error) => {
+            console.error("Error de autenticación", error);
         });
     }
+});
 
-    db.ref('players').on('value', (snapshot) => {
-        playersDiv.innerHTML = '';
-        snapshot.forEach((child) => {
-            if (child.key !== playerID) {
-                const other = createAvatar(child.val().name);
-                other.style.left = `${child.val().x}px`;
-                other.style.top = `${child.val().y}px`;
-            }
+// Crear avatar
+function createAvatar(name) {
+    const avatar = document.createElement('div');
+    avatar.classList.add('avatar');
+    avatar.textContent = name;
+    playersDiv.appendChild(avatar);
+    return avatar;
+}
+
+// Seguir jugador
+function trackPlayer(avatar) {
+    document.addEventListener('mousemove', (e) => {
+        avatar.style.left = `${e.clientX}px`;
+        avatar.style.top = `${e.clientY}px`;
+    });
+
+    setInterval(() => {
+        db.ref(`players/${playerID}`).set({
+            x: parseInt(avatar.style.left),
+            y: parseInt(avatar.style.top),
+            name: username
         });
-    });
+    }, 100);
+}
 
-    reportButton.addEventListener('click', () => {
-        alert("¡Jugador reportado!");
+// Mostrar jugadores
+db.ref('players').on('value', (snapshot) => {
+    playersDiv.innerHTML = '';
+    snapshot.forEach((child) => {
+        if (child.key !== playerID) {
+            const other = createAvatar(child.val().name);
+            other.style.left = `${child.val().x}px`;
+            other.style.top = `${child.val().y}px`;
+        }
     });
+});
+
+// Eliminar jugador al salir
+window.addEventListener('beforeunload', () => {
+    if (playerID) {
+        db.ref(`players/${playerID}`).remove();
+    }
+});
+
+// Reportar jugador
+reportButton.addEventListener('click', () => {
+    alert("¡Jugador reportado!");
+});
 </script>
 </body>
 </html>
