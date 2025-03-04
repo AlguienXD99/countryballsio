@@ -9,8 +9,9 @@
         body {
             margin: 0;
             overflow: hidden;
-            text-align: center;
             background: #222;
+            text-align: center;
+            color: white;
         }
         #panorama {
             width: 100%;
@@ -32,21 +33,26 @@
             border-radius: 50%;
             text-align: center;
             line-height: 50px;
-            color: white;
             font-weight: bold;
+            color: white;
             user-select: none;
+            pointer-events: all;
             cursor: pointer;
         }
-        #reportButton {
+        #buttons {
             position: absolute;
             top: 10px;
             right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
             padding: 10px;
             background: #ff0000;
             color: white;
             border: none;
-            cursor: pointer;
             border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -54,7 +60,10 @@
 <h1>Virtualblocks 360</h1>
 <div id="panorama"></div>
 <div id="players"></div>
-<button id="reportButton">Reportar jugador</button>
+<div id="buttons">
+    <button id="logoutButton">Cerrar sesión</button>
+    <button id="reportButton">Reportar jugador</button>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
@@ -63,13 +72,13 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
-  authDomain: "virtualblocks-servers.firebaseapp.com",
-  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
-  projectId: "virtualblocks-servers",
-  storageBucket: "virtualblocks-servers.appspot.com",
-  messagingSenderId: "796633829717",
-  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+    apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+    authDomain: "virtualblocks-servers.firebaseapp.com",
+    databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+    projectId: "virtualblocks-servers",
+    storageBucket: "virtualblocks-servers.appspot.com",
+    messagingSenderId: "796633829717",
+    appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -80,7 +89,6 @@ const provider = new firebase.auth.GoogleAuthProvider();
 let playerID = null;
 let username = "Jugador";
 const playersDiv = document.getElementById('players');
-const reportButton = document.getElementById('reportButton');
 
 // Panorama
 pannellum.viewer('panorama', {
@@ -89,50 +97,42 @@ pannellum.viewer('panorama', {
     autoLoad: true
 });
 
-// Autenticación automática
+// Autenticación
 auth.onAuthStateChanged((user) => {
     if (user) {
         console.log("Usuario autenticado:", user.displayName);
         username = user.displayName;
         playerID = user.uid;
-        const avatar = createAvatar(username);
-        trackPlayer(avatar);
+        createPlayer(playerID, username);
     } else {
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => auth.signInWithPopup(provider))
-        .then((result) => {
-            username = result.user.displayName;
-            playerID = result.user.uid;
-            const avatar = createAvatar(username);
-            trackPlayer(avatar);
-        })
-        .catch((error) => {
-            console.error("Error de autenticación", error);
-        });
+            .then(() => auth.signInWithPopup(provider))
+            .catch((error) => console.error("Error de autenticación", error));
     }
 });
 
-// Crear avatar
-function createAvatar(name) {
+// Crear jugador
+function createPlayer(id, name) {
     const avatar = document.createElement('div');
     avatar.classList.add('avatar');
     avatar.textContent = name;
     playersDiv.appendChild(avatar);
-    return avatar;
-}
 
-// Seguir jugador
-function trackPlayer(avatar) {
     document.addEventListener('mousemove', (e) => {
         avatar.style.left = `${e.clientX}px`;
         avatar.style.top = `${e.clientY}px`;
+        db.ref(`players/${id}`).set({
+            x: e.clientX,
+            y: e.clientY,
+            name: name
+        });
     });
 
     setInterval(() => {
-        db.ref(`players/${playerID}`).set({
+        db.ref(`players/${id}`).set({
             x: parseInt(avatar.style.left),
             y: parseInt(avatar.style.top),
-            name: username
+            name: name
         });
     }, 100);
 }
@@ -142,11 +142,29 @@ db.ref('players').on('value', (snapshot) => {
     playersDiv.innerHTML = '';
     snapshot.forEach((child) => {
         if (child.key !== playerID) {
-            const other = createAvatar(child.val().name);
+            const other = document.createElement('div');
+            other.classList.add('avatar');
+            other.textContent = child.val().name;
             other.style.left = `${child.val().x}px`;
             other.style.top = `${child.val().y}px`;
+            playersDiv.appendChild(other);
         }
     });
+});
+
+// Cerrar sesión
+document.getElementById('logoutButton').addEventListener('click', () => {
+    if (playerID) {
+        db.ref(`players/${playerID}`).remove();
+    }
+    auth.signOut().then(() => {
+        window.location.reload();
+    });
+});
+
+// Reportar jugador
+document.getElementById('reportButton').addEventListener('click', () => {
+    alert("¡Jugador reportado!");
 });
 
 // Eliminar jugador al salir
@@ -154,11 +172,6 @@ window.addEventListener('beforeunload', () => {
     if (playerID) {
         db.ref(`players/${playerID}`).remove();
     }
-});
-
-// Reportar jugador
-reportButton.addEventListener('click', () => {
-    alert("¡Jugador reportado!");
 });
 </script>
 </body>
