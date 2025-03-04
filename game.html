@@ -52,7 +52,7 @@ let players = {};
 let points = [];
 let targetX = player.x;
 let targetY = player.y;
-let hasLost = false; // Cooldown para perder
+let hasLost = false; 
 
 auth.onAuthStateChanged(user => {
     if (user) {
@@ -137,11 +137,11 @@ function checkCollisions() {
                 db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
-                    hasLost = true; // Activar cooldown
-                    setTimeout(() => hasLost = false, 5000); // Cooldown de 5 segundos para evitar spam
+                    hasLost = true; 
+                    setTimeout(() => hasLost = false, 5000);
                     db.ref(`players/${player.id}`).remove().then(() => {
-                        window.close(); // Cierra la pestaña actual
-                        window.open("perdiste.html", "_blank"); // Abre la pestaña de derrota
+                        window.close();
+                        window.open("perdiste.html", "_blank");
                     });
                 }
             }
@@ -177,6 +177,11 @@ function gameLoop() {
     db.ref(`players/${player.id}`).set(player);
     requestAnimationFrame(gameLoop);
 }
+
+window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
 </script>
 </body>
 </html>
