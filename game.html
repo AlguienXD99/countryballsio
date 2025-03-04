@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego - Countryballs.io</title>
+    <style>
+        body { margin: 0; background: white; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+  authDomain: "virtualblocks-servers.firebaseapp.com",
+  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+  projectId: "virtualblocks-servers",
+  storageBucket: "virtualblocks-servers.firebasestorage.app",
+  messagingSenderId: "796633829717",
+  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland" };
+let players = {};
+
+auth.onAuthStateChanged(user => {
+    if (user) {
+        player.id = user.uid;
+        db.ref(`players/${player.id}`).set(player);
+
+        db.ref("players").on("value", snapshot => {
+            players = snapshot.val() || {};
+        });
+
+        window.addEventListener("mousemove", e => {
+            player.x = e.clientX;
+            player.y = e.clientY;
+            db.ref(`players/${player.id}`).set(player);
+        });
+
+        window.addEventListener("beforeunload", () => {
+            db.ref(`players/${player.id}`).remove();
+        });
+
+        gameLoop();
+    } else {
+        window.location.href = "index.html";
+    }
+});
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (const id in players) {
+        const p = players[id];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = id === player.id ? "blue" : "red";
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = "14px Arial";
+        ctx.fillText(p.country, p.x - 20, p.y - p.size - 5);
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
