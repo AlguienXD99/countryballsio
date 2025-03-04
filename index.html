@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtualblocks 360</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            text-align: center;
+            background: #222;
+        }
+        #panorama {
+            width: 100%;
+            height: 100vh;
+        }
+        #players {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            pointer-events: none;
+        }
+        .avatar {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: red;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 50px;
+            color: white;
+            font-weight: bold;
+            user-select: none;
+            cursor: pointer;
+        }
+        #reportButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background: #ff0000;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<h1>Virtualblocks 360</h1>
+<div id="panorama"></div>
+<div id="players"></div>
+<button id="reportButton">Reportar jugador</button>
+
+<script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY",
+        authDomain: "TU_PROYECTO.firebaseapp.com",
+        databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    pannellum.viewer('panorama', {
+        type: 'equirectangular',
+        panorama: 'escena360.jpg',
+        autoLoad: true
+    });
+
+    const playersDiv = document.getElementById('players');
+    const reportButton = document.getElementById('reportButton');
+    let playerID = Date.now();
+    let username = "Jugador";
+
+    auth.signInWithPopup(provider).then((result) => {
+        username = result.user.displayName;
+        playerID = result.user.uid;
+        const avatar = createAvatar(username);
+        trackPlayer(avatar);
+    }).catch((error) => {
+        console.error("Error de autenticación", error);
+    });
+
+    function createAvatar(name) {
+        const avatar = document.createElement('div');
+        avatar.classList.add('avatar');
+        avatar.textContent = name;
+        playersDiv.appendChild(avatar);
+        return avatar;
+    }
+
+    function trackPlayer(avatar) {
+        document.addEventListener('mousemove', (e) => {
+            avatar.style.left = `${e.clientX}px`;
+            avatar.style.top = `${e.clientY}px`;
+            db.ref(`players/${playerID}`).set({
+                x: e.clientX,
+                y: e.clientY,
+                name: username
+            });
+        });
+    }
+
+    db.ref('players').on('value', (snapshot) => {
+        playersDiv.innerHTML = '';
+        snapshot.forEach((child) => {
+            if (child.key !== playerID) {
+                const other = createAvatar(child.val().name);
+                other.style.left = `${child.val().x}px`;
+                other.style.top = `${child.val().y}px`;
+            }
+        });
+    });
+
+    reportButton.addEventListener('click', () => {
+        alert("¡Jugador reportado!");
+    });
+</script>
+</body>
+</html>
