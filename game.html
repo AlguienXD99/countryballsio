@@ -3,26 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego - Countryballs.io</title>
+    <title>Countryballs.io</title>
     <style>
         body { margin: 0; background: white; overflow: hidden; }
         canvas { display: block; }
-        #logout { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            padding: 10px; 
-            background: #f44336; 
-            color: white; 
-            cursor: pointer; 
-            border: none; 
-            border-radius: 5px; 
-        }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<button id="logout">Cerrar sesión</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -52,9 +40,9 @@ let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * can
 let players = {};
 let points = [];
 let playerImage = new Image();
-playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de Polandball
+playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de countryball
 
-// Generar puntos Terra Nullius
+// Generar Terra Nullius
 for (let i = 0; i < 100; i++) {
     points.push({
         x: Math.random() * canvas.width,
@@ -84,11 +72,6 @@ auth.onAuthStateChanged(user => {
             db.ref(`players/${player.id}`).remove();
         });
 
-        document.getElementById("logout").onclick = () => {
-            auth.signOut();
-            db.ref(`players/${player.id}`).remove();
-        };
-
         gameLoop();
     } else {
         window.location.href = "index.html";
@@ -96,7 +79,7 @@ auth.onAuthStateChanged(user => {
 });
 
 function checkCollisions() {
-    // Absorción de Terra Nullius
+    // Absorción de puntos (Terra Nullius)
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
@@ -124,7 +107,7 @@ function checkCollisions() {
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar puntos Terra Nullius
+    // Dibujar Terra Nullius
     ctx.fillStyle = "green";
     points.forEach(p => {
         ctx.beginPath();
