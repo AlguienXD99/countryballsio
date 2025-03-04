@@ -62,12 +62,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "TU_API_KEY",
-        authDomain: "TU_PROYECTO.firebaseapp.com",
-        databaseURL: "https://TU_PROYECTO-default-rtdb.firebaseio.com"
-    };
-
+const firebaseConfig = {
+  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+  authDomain: "virtualblocks-servers.firebaseapp.com",
+  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+  projectId: "virtualblocks-servers",
+  storageBucket: "virtualblocks-servers.firebasestorage.app",
+  messagingSenderId: "796633829717",
+  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+};
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const auth = firebase.auth();
