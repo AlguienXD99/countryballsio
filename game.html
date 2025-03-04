@@ -134,6 +134,15 @@ function checkCollisions() {
                 player.size += p.size / 2;
                 player.score += p.size;
                 db.ref(`players/${id}`).remove(); // Eliminar jugador absorbido
+            } else if (dist < p.size && p.size > player.size) {
+                // Si el jugador actual es absorbido
+                db.ref(`players/${player.id}`).remove().then(() => {
+                    setTimeout(() => {
+                        window.open("perdiste.html", "_blank");
+                        window.close();
+                    }, 100); // Breve pausa para asegurar que se ejecute correctamente
+                });
+                return;
             }
         }
     }
