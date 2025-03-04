@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego - Countryballs.io</title>
+    <title>Countryballs.io</title>
     <style>
         body { margin: 0; background: white; overflow: hidden; }
         canvas { display: block; }
@@ -36,8 +36,20 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland" };
+let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland", alive: true };
 let players = {};
+let points = [];
+let playerImage = new Image();
+playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de countryball
+
+// Generar Terra Nullius
+for (let i = 0; i < 100; i++) {
+    points.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: 5
+    });
+}
 
 auth.onAuthStateChanged(user => {
     if (user) {
@@ -51,7 +63,9 @@ auth.onAuthStateChanged(user => {
         window.addEventListener("mousemove", e => {
             player.x = e.clientX;
             player.y = e.clientY;
-            db.ref(`players/${player.id}`).set(player);
+            if (player.alive) {
+                db.ref(`players/${player.id}`).set(player);
+            }
         });
 
         window.addEventListener("beforeunload", () => {
@@ -64,18 +78,57 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+function checkCollisions() {
+    // Absorción de puntos (Terra Nullius)
+    points = points.filter(p => {
+        const dist = Math.hypot(player.x - p.x, player.y - p.y);
+        if (dist < player.size) {
+            player.size += 1;
+            return false;
+        }
+        return true;
+    });
+
+    // Absorción de jugadores
+    for (const id in players) {
+        if (id !== player.id) {
+            const p = players[id];
+            const dist = Math.hypot(player.x - p.x, player.y - p.y);
+
+            if (dist < player.size && player.size > p.size && p.alive) {
+                player.size += p.size / 2;
+                p.alive = false;
+                db.ref(`players/${id}`).remove();
+            }
+        }
+    }
+}
+
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
+    // Dibujar Terra Nullius
+    ctx.fillStyle = "green";
+    points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Dibujar jugadores
     for (const id in players) {
         const p = players[id];
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = id === player.id ? "blue" : "red";
-        ctx.fill();
+        ctx.strokeStyle = "black";
         ctx.stroke();
+        ctx.drawImage(playerImage, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         ctx.font = "14px Arial";
-        ctx.fillText(p.country, p.x - 20, p.y - p.size - 5);
+        ctx.fillText(p.country, p.x - 20, p.y - p.size - 10);
+    }
+
+    if (player.alive) {
+        checkCollisions();
     }
 
     requestAnimationFrame(gameLoop);
@@ -83,3 +136,4 @@ function gameLoop() {
 </script>
 </body>
 </html>
+>
