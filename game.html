@@ -7,10 +7,22 @@
     <style>
         body { margin: 0; background: white; overflow: hidden; }
         canvas { display: block; }
+        #logout { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            padding: 10px; 
+            background: #f44336; 
+            color: white; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 5px; 
+        }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<button id="logout">Cerrar sesión</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -18,13 +30,13 @@
 
 <script>
 const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "TU_PROYECTO.firebaseapp.com",
-    databaseURL: "https://TU_PROYECTO.firebaseio.com",
-    projectId: "TU_PROYECTO",
-    storageBucket: "TU_PROYECTO.appspot.com",
-    messagingSenderId: "TU_ID",
-    appId: "TU_APP_ID"
+  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+  authDomain: "virtualblocks-servers.firebaseapp.com",
+  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+  projectId: "virtualblocks-servers",
+  storageBucket: "virtualblocks-servers.firebasestorage.app",
+  messagingSenderId: "796633829717",
+  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -36,13 +48,25 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland" };
+let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 30, country: "poland", alive: true };
 let players = {};
+let points = [];
+let playerImage = new Image();
+playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de Polandball
+
+// Generar puntos Terra Nullius
+for (let i = 0; i < 100; i++) {
+    points.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: 5
+    });
+}
 
 auth.onAuthStateChanged(user => {
     if (user) {
         player.id = user.uid;
-        db.ref(players/${player.id}).set(player);
+        db.ref(`players/${player.id}`).set(player);
 
         db.ref("players").on("value", snapshot => {
             players = snapshot.val() || {};
@@ -51,12 +75,19 @@ auth.onAuthStateChanged(user => {
         window.addEventListener("mousemove", e => {
             player.x = e.clientX;
             player.y = e.clientY;
-            db.ref(players/${player.id}).set(player);
+            if (player.alive) {
+                db.ref(`players/${player.id}`).set(player);
+            }
         });
 
         window.addEventListener("beforeunload", () => {
-            db.ref(players/${player.id}).remove();
+            db.ref(`players/${player.id}`).remove();
         });
+
+        document.getElementById("logout").onclick = () => {
+            auth.signOut();
+            db.ref(`players/${player.id}`).remove();
+        };
 
         gameLoop();
     } else {
@@ -64,18 +95,57 @@ auth.onAuthStateChanged(user => {
     }
 });
 
+function checkCollisions() {
+    // Absorción de Terra Nullius
+    points = points.filter(p => {
+        const dist = Math.hypot(player.x - p.x, player.y - p.y);
+        if (dist < player.size) {
+            player.size += 1;
+            return false;
+        }
+        return true;
+    });
+
+    // Absorción de jugadores
+    for (const id in players) {
+        if (id !== player.id) {
+            const p = players[id];
+            const dist = Math.hypot(player.x - p.x, player.y - p.y);
+
+            if (dist < player.size && player.size > p.size && p.alive) {
+                player.size += p.size / 2;
+                p.alive = false;
+                db.ref(`players/${id}`).remove();
+            }
+        }
+    }
+}
+
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
+    // Dibujar puntos Terra Nullius
+    ctx.fillStyle = "green";
+    points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Dibujar jugadores
     for (const id in players) {
         const p = players[id];
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = id === player.id ? "blue" : "red";
-        ctx.fill();
+        ctx.strokeStyle = "black";
         ctx.stroke();
+        ctx.drawImage(playerImage, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         ctx.font = "14px Arial";
-        ctx.fillText(p.country, p.x - 20, p.y - p.size - 5);
+        ctx.fillText(p.country, p.x - 20, p.y - p.size - 10);
+    }
+
+    if (player.alive) {
+        checkCollisions();
     }
 
     requestAnimationFrame(gameLoop);
