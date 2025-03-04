@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countryballs.io</title>
+    <title>Juego - Countryballs.io</title>
     <style>
         body { margin: 0; background: white; overflow: hidden; }
         canvas { display: block; }
+        #logout { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            padding: 10px; 
+            background: #f44336; 
+            color: white; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 5px; 
+        }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
+<button id="logout">Cerrar sesión</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -18,13 +30,13 @@
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
-  authDomain: "virtualblocks-servers.firebaseapp.com",
-  databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
-  projectId: "virtualblocks-servers",
-  storageBucket: "virtualblocks-servers.firebasestorage.app",
-  messagingSenderId: "796633829717",
-  appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    databaseURL: "https://TU_PROYECTO.firebaseio.com",
+    projectId: "TU_PROYECTO",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "TU_ID",
+    appId: "TU_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -40,9 +52,9 @@ let player = { id: null, x: Math.random() * canvas.width, y: Math.random() * can
 let players = {};
 let points = [];
 let playerImage = new Image();
-playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de countryball
+playerImage.src = "https://upload.wikimedia.org/wikipedia/commons/1/12/Polandball.png"; // Imagen de Polandball
 
-// Generar Terra Nullius
+// Generar puntos Terra Nullius
 for (let i = 0; i < 100; i++) {
     points.push({
         x: Math.random() * canvas.width,
@@ -72,6 +84,11 @@ auth.onAuthStateChanged(user => {
             db.ref(`players/${player.id}`).remove();
         });
 
+        document.getElementById("logout").onclick = () => {
+            auth.signOut();
+            db.ref(`players/${player.id}`).remove();
+        };
+
         gameLoop();
     } else {
         window.location.href = "index.html";
@@ -79,7 +96,7 @@ auth.onAuthStateChanged(user => {
 });
 
 function checkCollisions() {
-    // Absorción de puntos (Terra Nullius)
+    // Absorción de Terra Nullius
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
@@ -107,7 +124,7 @@ function checkCollisions() {
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar Terra Nullius
+    // Dibujar puntos Terra Nullius
     ctx.fillStyle = "green";
     points.forEach(p => {
         ctx.beginPath();
@@ -136,4 +153,3 @@ function gameLoop() {
 </script>
 </body>
 </html>
->
