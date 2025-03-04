@@ -83,13 +83,18 @@ function showCountrySelection() {
     select.innerHTML = "";
     db.ref("countriesAvailable").once("value", snapshot => {
         const countries = snapshot.val();
-        for (let country in countries) {
-            if (countries[country]) {
-                const option = document.createElement("option");
-                option.value = country;
-                option.textContent = country;
-                select.appendChild(option);
+        if (countries) {
+            for (let country in countries) {
+                if (countries[country]) {
+                    const option = document.createElement("option");
+                    option.value = country;
+                    option.textContent = country;
+                    select.appendChild(option);
+                }
             }
+        }
+        if (select.options.length === 0) {
+            select.innerHTML = "<option>No hay países disponibles</option>";
         }
         document.getElementById("countrySelect").style.display = "block";
     });
@@ -97,6 +102,12 @@ function showCountrySelection() {
 
 function selectCountry() {
     const selectedCountry = document.getElementById("countryDropdown").value;
+
+    if (!selectedCountry || selectedCountry === "No hay países disponibles") {
+        alert("Por favor, selecciona un país antes de jugar.");
+        return;
+    }
+
     player.country = selectedCountry;
     player.x = Math.random() * canvas.width;
     player.y = Math.random() * canvas.height;
@@ -107,6 +118,7 @@ function selectCountry() {
     db.ref(`players/${player.id}`).set(player);
 
     document.getElementById("countrySelect").style.display = "none";
+
     window.addEventListener("mousemove", e => {
         targetX = e.clientX;
         targetY = e.clientY;
@@ -118,15 +130,25 @@ function selectCountry() {
         });
     });
 
+    db.ref(`players/${player.id}`).onDisconnect().remove().then(() => {
+        db.ref(`countriesAvailable/${selectedCountry}`).set(true);
+    });
+
     spawnPoints();
     gameLoop();
 }
 
 function spawnPoints() {
-    for (let i = 0; i < 100; i++) {
-        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
-    }
-    db.ref("points").set(points);
+    db.ref("points").once("value", snapshot => {
+        if (!snapshot.exists()) {
+            for (let i = 0; i < 100; i++) {
+                points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
+            }
+            db.ref("points").set(points);
+        } else {
+            points = snapshot.val();
+        }
+    });
 }
 
 function checkCollisions() {
@@ -152,12 +174,13 @@ function checkCollisions() {
                 hasLost = true;
                 setTimeout(() => hasLost = false, 5000);
                 db.ref(`players/${player.id}`).remove().then(() => {
-                    window.close();
                     window.open("perdiste.html", "_blank");
+                    window.close();
                 });
             }
         }
     }
+
     db.ref("points").set(points);
 }
 
@@ -189,6 +212,24 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+function updateLeaderboard() {
+    const leaderboard = document.getElementById("leaderboard");
+    db.ref("players").once("value", snapshot => {
+        const allPlayers = [];
+        snapshot.forEach(child => {
+            allPlayers.push(child.val());
+        });
+
+        allPlayers.sort((a, b) => b.score - a.score);
+        leaderboard.innerHTML = "<h3>Leaderboard</h3>";
+        allPlayers.forEach(p => {
+            leaderboard.innerHTML += `${p.name}: ${p.score}<br>`;
+        });
+    });
+}
+
+setInterval(updateLeaderboard, 1000);
+
 window.addEventListener("resize", () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -196,3 +237,4 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
+
