@@ -33,7 +33,7 @@
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
-<div id="leaderboard">Leaderboard</div>
+<div id="leaderboard"></div>
 <div id="countrySelect">
     <h2>Selecciona tu país</h2>
     <select id="countryDropdown"></select>
@@ -64,9 +64,7 @@ canvas.height = window.innerHeight;
 let player = { id: null, x: 0, y: 0, size: 30, country: "", name: "", score: 0 };
 let players = {};
 let points = [];
-let targetX = 0;
-let targetY = 0;
-let hasLost = false;
+let targetX = 0, targetY = 0, hasLost = false;
 
 auth.onAuthStateChanged(user => {
     if (user) {
@@ -93,18 +91,14 @@ function showCountrySelection() {
                 }
             }
         }
-        if (select.options.length === 0) {
-            select.innerHTML = "<option>No hay países disponibles</option>";
-        }
         document.getElementById("countrySelect").style.display = "block";
     });
 }
 
 function selectCountry() {
     const selectedCountry = document.getElementById("countryDropdown").value;
-
-    if (!selectedCountry || selectedCountry === "No hay países disponibles") {
-        alert("Por favor, selecciona un país antes de jugar.");
+    if (!selectedCountry) {
+        alert("Selecciona un país");
         return;
     }
 
@@ -115,7 +109,15 @@ function selectCountry() {
     targetY = player.y;
 
     db.ref(`countriesAvailable/${selectedCountry}`).set(false);
-    db.ref(`players/${player.id}`).set(player);
+    db.ref(`players/${player.id}`).set({
+        id: player.id,
+        x: player.x,
+        y: player.y,
+        size: player.size,
+        country: player.country,
+        name: player.name,
+        score: player.score
+    });
 
     document.getElementById("countrySelect").style.display = "none";
 
@@ -125,9 +127,8 @@ function selectCountry() {
     });
 
     window.addEventListener("beforeunload", () => {
-        db.ref(`players/${player.id}`).remove().then(() => {
-            db.ref(`countriesAvailable/${selectedCountry}`).set(true);
-        });
+        db.ref(`players/${player.id}`).remove();
+        db.ref(`countriesAvailable/${selectedCountry}`).set(true);
     });
 
     db.ref(`players/${player.id}`).onDisconnect().remove().then(() => {
@@ -162,38 +163,18 @@ function checkCollisions() {
         return true;
     });
 
-    for (const id in players) {
-        if (id !== player.id) {
-            const p = players[id];
-            const dist = Math.hypot(player.x - p.x, player.y - p.y);
-            if (dist < player.size && player.size > p.size) {
-                player.size += p.size / 2;
-                player.score += p.size;
-                db.ref(`players/${id}`).remove();
-            } else if (dist < p.size && p.size > player.size && !hasLost) {
-                hasLost = true;
-                setTimeout(() => hasLost = false, 5000);
-                db.ref(`players/${player.id}`).remove().then(() => {
-                    window.open("perdiste.html", "_blank");
-                    window.close();
-                });
-            }
-        }
-    }
-
     db.ref("points").set(points);
 }
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     player.x += (targetX - player.x) * 0.02;
     player.y += (targetY - player.y) * 0.02;
 
-    ctx.fillStyle = "green";
     points.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = "green";
         ctx.fill();
     });
 
@@ -204,7 +185,10 @@ function gameLoop() {
         ctx.fillStyle = id === player.id ? "blue" : "red";
         ctx.fill();
         ctx.stroke();
-        ctx.fillText(p.name, p.x - 20, p.y - p.size - 10);
+
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText(`${p.name} [${p.country}]`, p.x - 20, p.y - p.size - 10);
     }
 
     checkCollisions();
@@ -223,7 +207,7 @@ function updateLeaderboard() {
         allPlayers.sort((a, b) => b.score - a.score);
         leaderboard.innerHTML = "<h3>Leaderboard</h3>";
         allPlayers.forEach(p => {
-            leaderboard.innerHTML += `${p.name}: ${p.score}<br>`;
+            leaderboard.innerHTML += `${p.name} [${p.country}]: ${p.score}<br>`;
         });
     });
 }
@@ -237,4 +221,3 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
-
