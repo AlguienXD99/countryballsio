@@ -60,10 +60,9 @@ auth.onAuthStateChanged(user => {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
 
-        // Selección aleatoria de imagen
         player.image = images[Math.floor(Math.random() * images.length)];
 
-        db.ref(players/${player.id}).set(player);
+        db.ref(`players/${player.id}`).set(player);
 
         db.ref("players").on("value", snapshot => {
             players = snapshot.val() || {};
@@ -81,7 +80,7 @@ auth.onAuthStateChanged(user => {
         });
 
         window.addEventListener("beforeunload", () => {
-            db.ref(players/${player.id}).remove().then(() => checkEmptyServer());
+            db.ref(`players/${player.id}`).remove().then(() => checkEmptyServer());
         });
 
         setInterval(spawnPoints, 60000);
@@ -117,7 +116,7 @@ function updateLeaderboard() {
     leaderboard.innerHTML = "<b>Leaderboard</b><br>";
     const sorted = Object.values(players).sort((a, b) => b.size - a.size);
     sorted.forEach(p => {
-        leaderboard.innerHTML += ${p.name}: ${p.size.toFixed(1)} puntos<br>;
+        leaderboard.innerHTML += `${p.name}: ${p.size.toFixed(1)} puntos<br>`;
     });
 }
 
@@ -125,7 +124,7 @@ function checkCollisions() {
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
-            player.size = Math.min(player.size + 0.3, 100); // Máximo permitido
+            player.size = Math.min(player.size + 0.3, 100);
             player.score += 1;
             return false;
         }
@@ -139,12 +138,12 @@ function checkCollisions() {
             if (dist < player.size && player.size > p.size) {
                 player.size += p.size / 4;
                 player.score += p.size;
-                db.ref(players/${id}).remove();
+                db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
                     hasLost = true;
                     setTimeout(() => hasLost = false, 5000);
-                    db.ref(players/${player.id}).remove().then(() => {
+                    db.ref(`players/${player.id}`).remove().then(() => {
                         window.close();
                         window.open("perdiste.html", "_blank");
                     });
@@ -177,7 +176,6 @@ function gameLoop() {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.clip();
-
         ctx.drawImage(img, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         ctx.restore();
 
@@ -186,7 +184,7 @@ function gameLoop() {
     }
 
     checkCollisions();
-    db.ref(players/${player.id}).set(player);
+    db.ref(`players/${player.id}`).set(player);
     requestAnimationFrame(gameLoop);
 }
 </script>
