@@ -112,9 +112,9 @@ function checkEmptyServer() {
 function updateLeaderboard() {
     const leaderboard = document.getElementById("leaderboard");
     leaderboard.innerHTML = "<b>Leaderboard</b><br>";
-    const sorted = Object.values(players).sort((a, b) => b.size - a.size);
+    const sorted = Object.values(players).sort((a, b) => b.score - a.score);
     sorted.forEach(p => {
-        leaderboard.innerHTML += `${p.name}: ${p.size.toFixed(1)} puntos<br>`;
+        leaderboard.innerHTML += `${p.name}: ${p.score} puntos<br>`;
     });
 }
 
@@ -122,8 +122,10 @@ function checkCollisions() {
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
-            player.size = Math.min(player.size + 0.1, 100);
-            player.score += 1;
+            if (player.score < 470) {
+                player.size = Math.min(player.size + 0.1, 100);
+                player.score += 1;
+            }
             return false;
         }
         return true;
@@ -135,7 +137,7 @@ function checkCollisions() {
             const dist = Math.hypot(player.x - p.x, player.y - p.y);
             if (dist < player.size && player.size > p.size) {
                 player.size += p.size / 8;
-                player.score += p.size;
+                player.score += p.score;
                 db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
@@ -183,6 +185,7 @@ function gameLoop() {
     db.ref(`players/${player.id}`).set(player);
     requestAnimationFrame(gameLoop);
 }
+
 </script>
 </body>
 </html>
