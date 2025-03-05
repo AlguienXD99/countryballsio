@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status | Countryballs.io</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .status-container {
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        .status-box {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-online { background: #d4edda; color: #155724; }
+        .status-offline { background: #f8d7da; color: #721c24; }
+        .status-partial { background: #fff3cd; color: #856404; }
+        footer {
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+<div class="status-container">
+    <h1>Status de Countryballs.io</h1>
+    <div class="status-box status-online" id="game-status">
+        Servidor de Juego: <span>🟢 Operativo</span>
+    </div>
+    <div class="status-box" id="player-count">
+        Jugadores en línea: <span>0</span>
+    </div>
+    <div class="status-box" id="last-ban">
+        Último Baneo: <span>Ninguno</span>
+    </div>
+    <div class="status-box">
+        Tiempo de Actividad: <span id="uptime">0 horas</span>
+    </div>
+</div>
+<footer>
+    Countryballs.io | Polskand Services © 2025
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAZM_UTKUtkjoXSmhAU2yFaWTgt9oUwktA",
+        authDomain: "virtualblocks-servers.firebaseapp.com",
+        databaseURL: "https://virtualblocks-servers-default-rtdb.firebaseio.com",
+        projectId: "virtualblocks-servers",
+        storageBucket: "virtualblocks-servers.appspot.com",
+        messagingSenderId: "796633829717",
+        appId: "1:796633829717:web:fcbd2d376565b0160e1fdc"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    db.ref("server/status").on("value", snapshot => {
+        const status = snapshot.val() || "offline";
+        const gameStatus = document.getElementById("game-status");
+        if (status === "online") {
+            gameStatus.className = "status-box status-online";
+            gameStatus.innerHTML = "Servidor de Juego: <span>🟢 Operativo</span>";
+        } else if (status === "partial") {
+            gameStatus.className = "status-box status-partial";
+            gameStatus.innerHTML = "Servidor de Juego: <span>🟡 Problemas Parciales</span>";
+        } else {
+            gameStatus.className = "status-box status-offline";
+            gameStatus.innerHTML = "Servidor de Juego: <span>🔴 Caído</span>";
+        }
+    });
+
+    db.ref("server/players").on("value", snapshot => {
+        document.getElementById("player-count").innerHTML = `Jugadores en línea: <span>${snapshot.val() || 0}</span>`;
+    });
+
+    db.ref("server/lastBan").on("value", snapshot => {
+        document.getElementById("last-ban").innerHTML = `Último Baneo: <span>${snapshot.val() || "Ninguno"}</span>`;
+    });
+
+    db.ref("server/uptime").on("value", snapshot => {
+        document.getElementById("uptime").textContent = `${snapshot.val() || 0} horas`;
+    });
+</script>
+</body>
+</html>
