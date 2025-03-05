@@ -144,8 +144,8 @@ function checkCollisions() {
                     hasLost = true;
                     setTimeout(() => hasLost = false, 5000);
                     db.ref(`players/${player.id}`).remove().then(() => {
-                        window.close();
                         window.open("perdiste.html", "_blank");
+                        window.close();
                     });
                 }
             }
