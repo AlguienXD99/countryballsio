@@ -161,6 +161,7 @@ function gameLoop() {
     player.y += (targetY - player.y) * 0.02;
 
     points.forEach(p => {
+        ctx.font = "20px Arial"; // Puedes cambiar el "20px" por el tamaño que prefieras
         ctx.fillStyle = "green";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
