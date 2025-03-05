@@ -124,7 +124,7 @@ function checkCollisions() {
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
-            player.size = Math.min(player.size + 0.3, 100);
+            player.size = Math.min(player.size + 0.1, 100);
             player.score += 1;
             return false;
         }
