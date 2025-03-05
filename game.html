@@ -136,7 +136,7 @@ function checkCollisions() {
             const p = players[id];
             const dist = Math.hypot(player.x - p.x, player.y - p.y);
             if (dist < player.size && player.size > p.size) {
-                player.size += p.size / 4;
+                player.size += p.size / 10;
                 player.score += p.score;
                 db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
