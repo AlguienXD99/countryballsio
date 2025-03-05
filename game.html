@@ -124,7 +124,7 @@ function checkCollisions() {
         if (dist < player.size) {
             if (player.score < 470) {
                 player.size = Math.min(player.size + 0.1, 100);
-                player.score += 1;
+                player.score += 0.3;
             }
             return false;
         }
