@@ -59,9 +59,7 @@ auth.onAuthStateChanged(user => {
     if (user) {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
-
         player.image = images[Math.floor(Math.random() * images.length)];
-
         db.ref(`players/${player.id}`).set(player);
 
         db.ref("players").on("value", snapshot => {
@@ -144,8 +142,7 @@ function checkCollisions() {
                     hasLost = true;
                     setTimeout(() => hasLost = false, 5000);
                     db.ref(`players/${player.id}`).remove().then(() => {
-                        window.open("perdiste.html", "_blank");
-                        window.close();
+                        window.location.href = "perdiste.html";
                     });
                 }
             }
@@ -156,12 +153,10 @@ function checkCollisions() {
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     player.x += (targetX - player.x) * 0.02;
     player.y += (targetY - player.y) * 0.02;
 
     points.forEach(p => {
-        ctx.font = "20px Arial"; // Puedes cambiar el "20px" por el tamaño que prefieras
         ctx.fillStyle = "green";
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -179,7 +174,6 @@ function gameLoop() {
         ctx.clip();
         ctx.drawImage(img, p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         ctx.restore();
-
         ctx.fillStyle = "black";
         ctx.fillText(p.name, p.x - 20, p.y - p.size - 10);
     }
