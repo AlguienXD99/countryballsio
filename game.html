@@ -122,9 +122,14 @@ function checkCollisions() {
     points = points.filter(p => {
         const dist = Math.hypot(player.x - p.x, player.y - p.y);
         if (dist < player.size) {
-            if (player.score < 470) {
+            if (player.score < 300) {
                 player.size = Math.min(player.size + 0.1, 100);
                 player.score += 0.1;
+            }
+            if (player.score >= 470) {
+                  db.ref(`players/${player.id}`).remove().then(() => {
+                  window.location.href = "ganaste.html";
+               });
             }
             return false;
         }
