@@ -78,7 +78,7 @@ auth.onAuthStateChanged(user => {
         });
 
         window.addEventListener("beforeunload", () => {
-            db.ref(players/${player.id}).remove().then(() => checkEmptyServer());
+            db.ref(`players/${player.id}`).remove().then(() => checkEmptyServer());
         });
 
         setInterval(spawnPoints, 60000);
@@ -114,7 +114,7 @@ function updateLeaderboard() {
     leaderboard.innerHTML = "<b>Leaderboard</b><br>";
     const sorted = Object.values(players).sort((a, b) => b.score - a.score);
     sorted.forEach(p => {
-        leaderboard.innerHTML += ${p.name}: ${p.score} puntos<br>;
+        leaderboard.innerHTML += `${p.name}: ${p.score} puntos<br>`;
     });
 }
 
@@ -127,7 +127,7 @@ function checkCollisions() {
                 player.score += 0.1;
             }
             if (player.score >= 470) {
-                  db.ref(players/${player.id}).remove().then(() => {
+                  db.ref(`players/${player.id}`).remove().then(() => {
                   window.location.href = "ganaste.html";
                });
             }
@@ -143,12 +143,12 @@ function checkCollisions() {
             if (dist < player.size && player.size > p.size) {
                 player.size += p.size / 10;
                 player.score += p.score;
-                db.ref(players/${id}).remove();
+                db.ref(`players/${id}`).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
                     hasLost = true;
                     setTimeout(() => hasLost = false, 5000);
-                    db.ref(players/${player.id}).remove().then(() => {
+                    db.ref(`players/${player.id}`).remove().then(() => {
                         window.location.href = "perdiste.html";
                     });
                 }
@@ -187,10 +187,9 @@ function gameLoop() {
     }
 
     checkCollisions();
-    db.ref(players/${player.id}).set(player);
+    db.ref(`players/${player.id}`).set(player);
     requestAnimationFrame(gameLoop);
 }
-
 </script>
 </body>
 </html>
