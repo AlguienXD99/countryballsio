@@ -60,7 +60,7 @@ auth.onAuthStateChanged(user => {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
         player.image = images[Math.floor(Math.random() * images.length)];
-        db.ref(players/${player.id}).set(player);
+        db.ref(`players/${player.id}`).set(player);
 
         db.ref("players").on("value", snapshot => {
             players = snapshot.val() || {};
