@@ -17,39 +17,11 @@
             border-radius: 5px; 
             font-family: Arial, sans-serif;
         }
-        #serverSelect {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-family: Arial, sans-serif;
-        }
-        #serverSelect button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px;
-            margin: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        #serverSelect button:hover {
-            background-color: #666;
-        }
     </style>
 </head>
 <body>
 <canvas id="gameCanvas"></canvas>
 <div id="leaderboard">Leaderboard</div>
-<div id="serverSelect">
-    <h3>Selecciona un servidor</h3>
-    <div id="serverList"></div>
-    <button id="createServerBtn">Crear un nuevo servidor</button>
-</div>
 
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
@@ -82,91 +54,39 @@ let points = [];
 let targetX = player.x;
 let targetY = player.y;
 let hasLost = false;
-let serverId = null; // Guardará el id del servidor seleccionado
 
 auth.onAuthStateChanged(user => {
     if (user) {
         player.id = user.uid;
         player.name = user.displayName || "Anónimo";
         player.image = images[Math.floor(Math.random() * images.length)];
+        db.ref(players/${player.id}).set(player);
 
-        // Mostrar la pantalla de selección de servidor
-        showServerSelectScreen();
-
-        db.ref("servers").on("value", snapshot => {
-            let servers = snapshot.val() || {};
-            displayServers(servers);
+        db.ref("players").on("value", snapshot => {
+            players = snapshot.val() || {};
+            updateLeaderboard();
         });
 
-        // Botón para crear un nuevo servidor
-        document.getElementById("createServerBtn").addEventListener("click", createNewServer);
+        db.ref("points").once("value", snapshot => {
+            points = snapshot.val() || [];
+            if (points.length === 0) generatePoints();
+        });
+
+        window.addEventListener("mousemove", e => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+        });
+
+        window.addEventListener("beforeunload", () => {
+            db.ref(players/${player.id}).remove().then(() => checkEmptyServer());
+        });
+
+        setInterval(spawnPoints, 60000);
+        gameLoop();
     } else {
         window.location.href = "index.html";
     }
 });
-
-function showServerSelectScreen() {
-    document.getElementById("serverSelect").style.display = "block";
-}
-
-function hideServerSelectScreen() {
-    document.getElementById("serverSelect").style.display = "none";
-}
-
-function displayServers(servers) {
-    const serverListDiv = document.getElementById("serverList");
-    serverListDiv.innerHTML = ""; // Limpiar la lista antes de agregar los servidores
-
-    for (const serverId in servers) {
-        const server = servers[serverId];
-        const serverButton = document.createElement("button");
-        serverButton.textContent = `Servidor: ${server.name}`;
-        serverButton.addEventListener("click", () => joinServer(serverId));
-        serverListDiv.appendChild(serverButton);
-    }
-}
-
-function joinServer(id) {
-    serverId = id;
-    db.ref(`servers/${serverId}/players`).push(player);
-    hideServerSelectScreen();
-
-    // Actualizar los datos del jugador
-    db.ref(`players/${player.id}`).set(player);
-
-    // Comenzar el juego
-    db.ref(`servers/${serverId}`).on("value", snapshot => {
-        const data = snapshot.val();
-        players = data.players || {};
-        points = data.points || [];
-        gameLoop();
-    });
-}
-
-function createNewServer() {
-    const serverName = prompt("Introduce el nombre de tu nuevo servidor:");
-    if (serverName) {
-        const newServer = {
-            name: serverName,
-            players: {},
-            points: generateInitialPoints()
-        };
-
-        const newServerRef = db.ref("servers").push();
-        newServerRef.set(newServer).then(() => {
-            serverId = newServerRef.key;
-            joinServer(serverId);
-        });
-    }
-}
-
-function generateInitialPoints() {
-    const points = [];
-    for (let i = 0; i < 100; i++) {
-        points.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: 5 });
-    }
-    return points;
-}
 
 function generatePoints() {
     points = [];
@@ -194,7 +114,7 @@ function updateLeaderboard() {
     leaderboard.innerHTML = "<b>Leaderboard</b><br>";
     const sorted = Object.values(players).sort((a, b) => b.score - a.score);
     sorted.forEach(p => {
-        leaderboard.innerHTML += `${p.name}: ${p.score} puntos<br>`;
+        leaderboard.innerHTML += ${p.name}: ${p.score} puntos<br>;
     });
 }
 
@@ -207,7 +127,7 @@ function checkCollisions() {
                 player.score += 0.1;
             }
             if (player.score >= 470) {
-                  db.ref(`players/${player.id}`).remove().then(() => {
+                  db.ref(players/${player.id}).remove().then(() => {
                   window.location.href = "ganaste.html";
                });
             }
@@ -223,12 +143,12 @@ function checkCollisions() {
             if (dist < player.size && player.size > p.size) {
                 player.size += p.size / 10;
                 player.score += p.score;
-                db.ref(`players/${id}`).remove();
+                db.ref(players/${id}).remove();
             } else if (dist < p.size && p.size > player.size) {
                 if (!hasLost) {
                     hasLost = true;
                     setTimeout(() => hasLost = false, 5000);
-                    db.ref(`players/${player.id}`).remove().then(() => {
+                    db.ref(players/${player.id}).remove().then(() => {
                         window.location.href = "perdiste.html";
                     });
                 }
@@ -267,7 +187,7 @@ function gameLoop() {
     }
 
     checkCollisions();
-    db.ref(`players/${player.id}`).set(player);
+    db.ref(players/${player.id}).set(player);
     requestAnimationFrame(gameLoop);
 }
 </script>
